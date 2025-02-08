@@ -13,7 +13,6 @@ enum Suit{
 };
 
 enum Rank{
-    JOKER = 0,
     ACE = 1,
     TWO = 2,
     THREE = 3,
@@ -82,23 +81,6 @@ Card* create52CardDeck(){
     return deck;
 }
 
-Card* create54CardDeck(){
-    Card* deck = (Card*)malloc(54 * sizeof(Card));
-    if(deck == NULL){
-        // NO RAM
-        return NULL;
-    }
-    for(int i = 0; i < 4; i++){
-        for(int j = 0; j < 13; j++){
-            deck[(i * 13) + j] = createCard(i,j+1);
-        }
-    }
-    deck[53] = createCard(0,JOKER);
-    deck[54] = createCard(0,JOKER);
-    shuffleDeck(&deck,54);
-    return deck;
-}
-
 Card drawCardFromDeck(Card** deck, int* deckIndex, int deckSize){
     Card topCard = (*deck)[*deckIndex];
     (*deckIndex)++;
@@ -121,7 +103,6 @@ const char* suitToString(enum Suit suit) {
 
 const char* rankToString(enum Rank rank) {
     switch(rank){
-        case JOKER: return "Joker";
         case ACE: return "Ace";
         case TWO: return "Two";
         case THREE: return "Three";
@@ -159,10 +140,10 @@ char* cardToString(Card card) {
 // Convert Suit enum to ASCII suit symbol
 const char* suitToAscii(enum Suit suit) {
     switch(suit){
-        case SPADE: return "♠";
-        case HEART: return "♥";
-        case CLUB: return "♣";
-        case DIAMOND: return "♦";
+        case SPADE: return "\u2660";
+        case HEART: return "\u2665";
+        case CLUB: return "\u2663";
+        case DIAMOND: return "\u2666";
         default: return " ";
     }
 }
@@ -183,7 +164,6 @@ const char* rankToAscii(enum Rank rank) {
         case JACK: return "J";
         case QUEEN: return "Q";
         case KING: return "K";
-        case JOKER: return "JOKER";
         default: return " ";
     }
 }

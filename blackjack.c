@@ -7,6 +7,7 @@
 #define COMMAND_BUFFER 11
 #define MAX_HAND_SIZE 15
 
+int money = 100;
 int deckIndex;
 Card* deck;
 Card playerHand[MAX_HAND_SIZE];
@@ -14,6 +15,10 @@ Card dealerHand[MAX_HAND_SIZE];
 int playerHandSize;
 int dealerHandSize;
 char command[COMMAND_BUFFER];
+
+void clearTerminal(){
+    printf("\033[H\033[J");
+}
 
 int getHandValue(Card* hand, int handSize){
     int handValue = 0;
@@ -53,39 +58,43 @@ void printHand(Card* hand, int handSize) {
 }
 
 void printGameState(bool showDealersHand){
+    clearTerminal();
     printf("\nDealers Hand: ");
     printHand(dealerHand,dealerHandSize - (showDealersHand ? 0 : 1));
     printf("\nYour Hand: ");
     printHand(playerHand,playerHandSize);
 }
 
+enum command{
+    ERROR, HIT, STAND, DOUBLE_DOWN, CONTINUE, QUIT
+};
+
+enum command getCommand(){
+    if(fgets(command, sizeof(command), stdin)) {
+        switch(command[0]){
+            case 'h': case 'H': return HIT;
+            case 's': case 'S': return STAND;
+            case 'd': case 'D': return DOUBLE_DOWN;
+            case 'c': case 'C': return CONTINUE;
+            case 'q': case 'Q': return QUIT;
+            default: return ERROR;
+        }
+    }else{
+        return ERROR;
+    }
+}
+
 void playerTurn(){
     while(1){
         printGameState(false);
-        printf("\nEnter a command: ");
-        if(fgets(command, sizeof(command), stdin)) {
-            // Remove newline character if present
-            size_t len = strlen(command);
-            if (len > 0 && command[len - 1] == '\n') {
-                    command[len - 1] = '\0';
-                }
-                printf("You entered: %s\n", command);
-            }else{
-            printf("Error reading input.\n");
-        }
-        switch(command[0]){
-            case 'h':
-            case 'H': //Hit
-                printf("\nYou hit");
+        printf("\nHit, Stand, or Double Down?\n");
+        switch(getCommand()){
+            case HIT:
                 playerHand[playerHandSize++] = drawCardFromDeck(&deck,&deckIndex,52);
                 break;
-            case 's':
-            case 'S': //Stand
-                printf("\nYou stand");
+            case STAND:
                 return;
-            case 'd':
-            case 'D': //Double Down
-                printf("\nYou Double Down");
+            case DOUBLE_DOWN:
                 playerHand[playerHandSize++] = drawCardFromDeck(&deck,&deckIndex,52);
                 return;
             default:
@@ -96,48 +105,55 @@ void playerTurn(){
     }
 }
 
-void dealerTurn(){
-    int playerHandValue = getHandValue(playerHand,playerHandSize);
-    //If player already lost don't do turn
-    if(playerHandValue > 21) return;
-    //Else do turn
+void dealerTurn() {
+    int playerHandValue = getHandValue(playerHand, playerHandSize);
+    // If the player already lost, don't do the dealer's turn
+    if (playerHandValue > 21) return;
+    printGameState(true);
+    printf("Dealer revealed their 2nd card %s of %ss (Press Enter to continue)",rankToString(dealerHand[1].rank),suitToString(dealerHand[1].suit));
+    fgets(command, sizeof(command), stdin);  //Wait for user confirmation
+    //Otherwise, start the dealer's turn
     while(1){
         printGameState(true);
-        int dealerHandValue = getHandValue(dealerHand,dealerHandSize);
+        int dealerHandValue = getHandValue(dealerHand, dealerHandSize);
         //Check for soft 17s
         bool isSoft17 = false;
-        if(dealerHandValue == 17){
-            for(int i = 0; i < dealerHandSize; i++){
-                if(dealerHand[i].rank == ACE){
+        if(dealerHandValue == 17) {
+            for (int i = 0; i < dealerHandSize; i++) {
+                if (dealerHand[i].rank == ACE) {
                     isSoft17 = true;
                     break;
                 }
             }
         }
-        //Hit below 17 or on soft 17 otherwise stand
-        if((dealerHandValue >= 17 && !isSoft17 && dealerHandValue >= playerHandValue) || dealerHandValue > 21){
+        //Hit below 17 or on soft 17, otherwise stand
+        if((dealerHandValue >= 17 && !isSoft17 && dealerHandValue >= playerHandValue) || dealerHandValue > 21) {
             return;
         }else{
-            dealerHand[dealerHandSize++] = drawCardFromDeck(&deck,&deckIndex,52);
+            Card newCard = drawCardFromDeck(&deck, &deckIndex, 52);
+            dealerHand[dealerHandSize++] = newCard;
+            printGameState(true);
+            printf("Dealer drew %s of %ss (Press Enter to continue)",rankToString(newCard.rank),suitToString(newCard.suit));
+            fgets(command, sizeof(command), stdin);  ////Wait for user confirmation
         }
     }
 }
 
 enum RoundState{
-    Won = 1,
-    Lost = -1,
-    Tied = 0
+    WON = 1,
+    LOST = -1,
+    TIED = 0
 };
 
 enum RoundState winConditionCheck() {
     int dealerHandValue = getHandValue(dealerHand, dealerHandSize);
     int playerHandValue = getHandValue(playerHand, playerHandSize);
 
-    if(playerHandValue > 21) return Lost; //Player Bust
-    if(dealerHandValue > 21) return Won; //Dealer Bust
-    if(playerHandValue > dealerHandValue) return Won;
-    if(playerHandValue < dealerHandValue) return Lost;
-    return Tied;
+    if(playerHandValue > 21) return LOST; //Player Bust
+    if(dealerHandValue > 21) return WON; //Dealer Bust
+    if(playerHandValue > dealerHandValue) return WON;
+    if(playerHandValue < dealerHandValue) return LOST;
+    return TIED;
 }
 
 void gameLoop(){
@@ -160,22 +176,28 @@ void gameLoop(){
         //Print results
         printGameState(true);
         switch(winConditionCheck()){
-            case Won:
-                printf("\nYou win!");
+            case WON:
+                printf("\nYou Win!");
                 break;
-            case Lost:
-                printf("\nYou Lost :c");
+            case LOST:
+                printf("\nYou Lost...");
                 break;
-            case Tied:
-                printf("\nDraw");
+            case TIED:
+                printf("\nIts a Draw");
                 break;
         }
+        printf("\nEnter Q to quit Enter any other Character to Continue: ");
+        switch(getCommand()){
+            case QUIT: free(deck); return;
+        }
     }
-    
-    free(deck);
 }
 
 int main(){
+    #ifdef _WIN32
+        system("chcp 65001");
+        clearTerminal();
+    #endif
     gameLoop();
     return 0;
 }
