@@ -6,8 +6,11 @@
 
 #define COMMAND_BUFFER 11
 #define MAX_HAND_SIZE 15
+#define STARTING_MONEY 100
+#define DEFAULT_BET 10
 
 int money = 100;
+int bet = 0;
 int deckIndex;
 Card* deck;
 Card playerHand[MAX_HAND_SIZE];
@@ -59,7 +62,9 @@ void printHand(Card* hand, int handSize) {
 
 void printGameState(bool showDealersHand){
     clearTerminal();
-    printf("\nDealers Hand: ");
+    printf("MONEY: $%d",money);
+    if(bet != 0) printf(" Current Bet: $%d",bet);
+    printf("\n\nDealers Hand: ");
     printHand(dealerHand,dealerHandSize - (showDealersHand ? 0 : 1));
     printf("\nYour Hand: ");
     printHand(playerHand,playerHandSize);
@@ -94,9 +99,16 @@ void playerTurn(){
                 break;
             case STAND:
                 return;
-            case DOUBLE_DOWN:
-                playerHand[playerHandSize++] = drawCardFromDeck(&deck,&deckIndex,52);
-                return;
+            case DOUBLE_DOWN:  
+                if(money >= bet){
+                    money -= bet;
+                    bet *= 2;
+                    playerHand[playerHandSize++] = drawCardFromDeck(&deck,&deckIndex,52);
+                    return;
+                }else{
+                    printf("\nNot enough money to double down.");
+                    break;
+                }
             default:
                 printf("\nInvalid command");
                 break;
@@ -162,6 +174,38 @@ void gameLoop(){
     deckIndex = 0;
     deck = create52CardDeck();
     while(1){
+        //Get player bet
+        if(money <= 0){
+            printGameState(true);
+            free(deck);
+            return;
+        }
+        while(1){
+            printf("Enter a bet (Blank for default bet $%d) or Q to Quit: ",DEFAULT_BET);
+            fgets(command, sizeof(command), stdin);
+
+            // Check if the user just pressed enter
+            if(command[0] == '\n'){
+                bet = DEFAULT_BET;
+                break;
+            }else if(command[0] == 'q' || command[0] == 'Q'){
+                free(deck);
+                return;
+            }
+
+            //Try to convert input to an integer
+            if(sscanf(command, "%d", &bet) == 1) {
+                if(bet >= 1 && bet <= money){
+                    break;
+                }else{
+                    printf("Bet must be between $%d and $%d.\n", 1, money);
+                }
+            }else{
+                printf("Invalid input. Please enter a valid integer.\n");
+            }
+        }
+        money -= bet;
+    
         enum RoundState state;
         playerHandSize = 2;
         dealerHandSize = 2;
@@ -174,21 +218,27 @@ void gameLoop(){
         playerTurn();
         dealerTurn();
         //Print results
-        printGameState(true);
         switch(winConditionCheck()){
             case WON:
-                printf("\nYou Win!");
+                int profit = bet;
+                money += bet*2;
+                bet = 0;
+                printGameState(true);
+                printf("\nYou Win! You profited $%d!\n",profit);
                 break;
             case LOST:
-                printf("\nYou Lost...");
+                int burntMoney = bet;
+                bet = 0;
+                printGameState(true);
+                printf("\nYou Lost... $%d.\n",burntMoney);
                 break;
             case TIED:
-                printf("\nIts a Draw");
+                int recoup = bet;
+                money += bet;
+                bet = 0;
+                printGameState(true);
+                printf("\nIts a Draw you recouped your $%d bet.\n",recoup);
                 break;
-        }
-        printf("\nEnter Q to quit Enter any other Character to Continue: ");
-        switch(getCommand()){
-            case QUIT: free(deck); return;
         }
     }
 }
@@ -199,5 +249,11 @@ int main(){
         clearTerminal();
     #endif
     gameLoop();
+    if(money > 0){
+        printf("You ended with $%d",money);
+    }else{
+        printf("You lost all your money...");
+    }
+    fgets(command, sizeof(command), stdin);
     return 0;
 }
