@@ -64,7 +64,7 @@ void printGameState(bool showDealersHand){
     clearTerminal();
     printf("MONEY: $%d",money);
     if(bet != 0) printf(" Current Bet: $%d",bet);
-    printf("\n\nDealers Hand: ");
+    printf("\n\nDealer's Hand: ");
     printHand(dealerHand,dealerHandSize - (showDealersHand ? 0 : 1));
     printf("\nYour Hand: ");
     printHand(playerHand,playerHandSize);
