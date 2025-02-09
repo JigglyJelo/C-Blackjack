@@ -54,7 +54,7 @@ int getHandValue(Card* hand, int handSize){
     return handValue;
 }
 
-void printHand(Card* hand, int handSize) {
+void printHand(Card* hand, int handSize){
     printf("\n");
     printHandAscii(hand, handSize);
     printf("Value: %d\n", getHandValue(hand, handSize));
@@ -117,10 +117,10 @@ void playerTurn(){
     }
 }
 
-void dealerTurn() {
+void dealerTurn(){
     int playerHandValue = getHandValue(playerHand, playerHandSize);
-    // If the player already lost, don't do the dealer's turn
-    if (playerHandValue > 21) return;
+    //If the player already lost, don't do the dealer's turn
+    if(playerHandValue > 21) return;
     printGameState(true);
     printf("Dealer revealed their 2nd card %s of %ss (Press Enter to continue)",rankToString(dealerHand[1].rank),suitToString(dealerHand[1].suit));
     fgets(command, sizeof(command), stdin);  //Wait for user confirmation
@@ -131,8 +131,8 @@ void dealerTurn() {
         //Check for soft 17s
         bool isSoft17 = false;
         if(dealerHandValue == 17) {
-            for (int i = 0; i < dealerHandSize; i++) {
-                if (dealerHand[i].rank == ACE) {
+            for(int i = 0; i < dealerHandSize; i++){
+                if(dealerHand[i].rank == ACE){
                     isSoft17 = true;
                     break;
                 }
@@ -146,7 +146,7 @@ void dealerTurn() {
             dealerHand[dealerHandSize++] = newCard;
             printGameState(true);
             printf("Dealer drew %s of %ss (Press Enter to continue)",rankToString(newCard.rank),suitToString(newCard.suit));
-            fgets(command, sizeof(command), stdin);  ////Wait for user confirmation
+            fgets(command, sizeof(command), stdin);  //Wait for user confirmation
         }
     }
 }
@@ -184,7 +184,7 @@ void gameLoop(){
             printf("Enter a bet (Blank for default bet $%d) or Q to Quit: ",(DEFAULT_BET <= money ? DEFAULT_BET : money));
             fgets(command, sizeof(command), stdin);
 
-            // Check if the user just pressed enter
+            //Check if the user just pressed enter
             if(command[0] == '\n'){
                 if(DEFAULT_BET <= money) bet = DEFAULT_BET;
                 else bet = money;
@@ -195,7 +195,7 @@ void gameLoop(){
             }
 
             //Try to convert input to an integer
-            if(sscanf(command, "%d", &bet) == 1) {
+            if(sscanf(command, "%d", &bet) == 1){
                 if(bet >= 1 && bet <= money){
                     break;
                 }else{
@@ -244,17 +244,26 @@ void gameLoop(){
     }
 }
 
-int main(){
+int main(int argc, char *argv[]){
+    //Custom starting money based on arguement (100 by default if no arguement)
+    if(argc == 2){
+        money = atoi(argv[1]);
+        if(money == 0) money = 100;
+    }
+    //Necessary for windows to display box characters properly
     #ifdef _WIN32
         system("chcp 65001");
         clearTerminal();
     #endif
+    //The game
     gameLoop();
+    //End results
     if(money > 0){
         printf("You ended with $%d",money);
     }else{
         printf("You lost all your money...");
     }
+    //User confirmation before closing game
     fgets(command, sizeof(command), stdin);
     return 0;
 }
