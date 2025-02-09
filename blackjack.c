@@ -181,12 +181,13 @@ void gameLoop(){
             return;
         }
         while(1){
-            printf("Enter a bet (Blank for default bet $%d) or Q to Quit: ",DEFAULT_BET);
+            printf("Enter a bet (Blank for default bet $%d) or Q to Quit: ",(DEFAULT_BET <= money ? DEFAULT_BET : money));
             fgets(command, sizeof(command), stdin);
 
             // Check if the user just pressed enter
             if(command[0] == '\n'){
-                bet = DEFAULT_BET;
+                if(DEFAULT_BET <= money) bet = DEFAULT_BET;
+                else bet = money;
                 break;
             }else if(command[0] == 'q' || command[0] == 'Q'){
                 free(deck);
